@@ -1,266 +1,205 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <style>
-    .editable {
-      width: 100%;
-      min-height: 150px;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-    .mark.rot { background-color: #f7c5c5; }
-    .mark.gelb { background-color: #fff3b0; }
-    .mark.gruen { background-color: #c8f7c5; }
-  </style>
-</head>
-<meta charset="UTF-8" />
-<title>DQE mit Dummytexts</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<title>Ampel-Prototyp – Side by Side mit Hilfe-Box im Fluss</title>
 <style>
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 16px; background: #f5f5f5; }
-  h3 { margin: 0.5rem 0; }
+  body { font-family: sans-serif; padding:20px; line-height:1.6; }
+  .side-by-side { display:flex; gap:20px; }
+  .editable { flex:1; border:2px solid #ccc; border-radius:8px; padding:12px; min-height:300px; background:#fafafa; }
+  .editable:focus { outline:none; border-color:#228b22; background:#fff; }
 
-  /* Top bar: badges + legend combined */
-  .topbar {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 16px;
-  }
-  .ampel-badges { display: flex; gap: 8px; }
+   /* Ampel-Badges */
+  .ampel-badges { margin-bottom: 8px; }
   .badge {
-    border: none; color: #fff; padding: 0.5rem 0.9rem; border-radius: 6px; cursor: pointer; font-weight: 600;
+    border: none; color: white; padding: 0.5rem 1rem; margin: 0.25rem;
+    border-radius: 6px; cursor: pointer; font-weight: 600;
   }
   .badge.gruen { background: #228b22; }
-  .badge.gelb  { background: #ff8c00; }
+  .badge.gelb  { background: #ffd700; }
   .badge.rot   { background: #c62828; }
 
-  .legend { display: flex; align-items: center; gap: 14px; margin-left: auto; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 8px; color: #333; font-size: 0.95rem; }
-  .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
-  .dot--green { background: #00cc66; }
-  .dot--yellow { background: #ffcc00; }
-  .dot--red { background: #ff3333; }
+  h4 { display:flex; align-items:center; gap:8px; margin-top:0; }
+  .overall-badge { padding:4px 8px; border-radius:6px; font-weight:bold; }
+  .overall-badge.gruen { background:#228b22; color:white; }
+  .overall-badge.gelb  { background:#ffd700; color:black; }
+  .overall-badge.rot   { background:#c62828; color:white; }
 
-  /* Overlay boxes toggled by badges */
+  .mark { cursor:pointer; padding:2px; border-radius:3px; }
+  .mark.gruen { background:#e6ffe6; border-bottom:2px solid #228b22; }
+  .mark.gelb  { background:#ffffe0; border-bottom:2px dashed #ffd700; }
+  .mark.rot   { background:#ffe6e6; border-bottom:2px dashed #c62828; }
+
+  /* Overlays */
   .overlay-box {
-    background: #fff; border-left: 6px solid; padding: 1rem; border-radius: 8px;
-    margin-bottom: 20px; display: none; border: 1px solid #ddd;
+    background: #f9f9f9; border-left: 6px solid; padding: 1rem; border-radius: 8px;
+    max-width: 720px; margin: 0.75rem 0;
   }
   #overlay-gruen { border-color: #228b22; }
-  #overlay-gelb  { border-color: #ff8c00; }
+  #overlay-gelb  { border-color: #ffd700; }
   #overlay-rot   { border-color: #c62828; }
+  .hidden { display: none; }
 
-  /* Two windows side-by-side */
-  .container { display: flex; gap: 24px; }
-  .window {
-    flex: 1; background: #fff; border: 1px solid #ddd; border-radius: 8px;
-    padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  /* Hilfe-Box */
+  .help-box {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #fff; border: 2px solid #ccc; padding: 1rem; border-radius: 12px;
+    max-width: 640px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); z-index: 1000;
   }
-  .window h3 { margin-top: 0; }
-
-  /* Segments */
-  .mark { cursor: pointer; border-radius: 3px; padding: 0 2px; transition: box-shadow 120ms ease; }
-  .mark:hover { box-shadow: 0 0 0 2px rgba(0,0,0,0.08) inset; }
-  .mark.gruen { background-color: #e6ffe6; border-bottom: 2px solid #228b22; }
-  .mark.gelb  { background-color: #fffbe6; border-bottom: 2px dashed #ff8c00; }
-  .mark.rot   { background-color: #ffe6e6; border-bottom: 2px dashed #c62828; }
-
-  /* Popover: single reusable panel */
-  .popover {
-    position: absolute; display: none; width: 320px;
-    border: 1px solid #ccc; border-radius: 8px; padding: 0.8rem;
-    background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.15); z-index: 1000;
+  .help-box-header { display:flex; justify-content:space-between; align-items:center; }
+  .help-box .close { cursor: pointer; font-size: 20px; font-weight: bold; line-height: 1; }
+  .help-box button {
+    margin-top: 0.5rem; padding: 0.4rem 0.8rem; border: none; border-radius: 4px; background: #eee; cursor: pointer;
   }
-  .popover__header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .popover__title { font-weight: 700; }
-  .popover__close { margin-left: auto; background: transparent; border: none; font-size: 18px; cursor: pointer; }
-  .btn { margin-top: 8px; padding: 6px 10px; border: none; border-radius: 4px; background: #003366; color: #fff; cursor: pointer; font-size: 0.9rem; }
+  .help-box button:hover { background: #ddd; }
 
-  /* Mobile fallback: make popover static under the container for readability */
-  @media (max-width: 720px) {
-    .container { flex-direction: column; }
-    .popover { position: static; width: auto; display: none; margin-top: 12px; }
-  }
+  .tooltip {
+  position: relative;
+}
+.tooltip::after {
+  content: attr(data-tooltip);   /* Holt den Text aus data-tooltip */
+  position: absolute;
+  bottom: 125%;                  /* über der Badge */
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 1000;
+}
+.tooltip:hover::after,
+.tooltip.show::after {           /* bei Hover oder Klick sichtbar */
+  opacity: 1;
+}
 </style>
 </head>
 <body>
 
-<!-- Combined top bar: badges + legend -->
-<div class="topbar">
+<!-- Ampelsteuerung und Overlays -->
+<div class="section">
   <div class="ampel-badges">
-    <button class="badge gruen" data-overlay="gruen">🟢 Qualitätseinschätzung: Sicher</button>
-    <button class="badge gelb"  data-overlay="gelb">🟡 Qualitätseinschätzung: Unsicher</button>
-    <button class="badge rot"   data-overlay="rot">🔴 Qualitätseinschätzung: Riskant</button>
+    <button class="badge gruen" onclick="openOverlay('gruen')">🟢 Sicher</button>
+    <button class="badge gelb" onclick="openOverlay('gelb')">🟡 Unsicher</button>
+    <button class="badge rot" onclick="openOverlay('rot')">🔴 Riskant</button>
   </div>
-  <div class="legend" aria-label="Ampel-Legende">
-    <div class="legend-item"><span class="dot dot--green"></span> Sicher – direkt verwendbar</div>
-    <div class="legend-item"><span class="dot dot--yellow"></span> Unsicher – bitte prüfen, evtl. verbessern</div>
-    <div class="legend-item"><span class="dot dot--red"></span> Riskant – nicht vertrauenswürdig</div>
+
+  <div id="overlay-gruen" class="overlay-box hidden">
+    <h3>🟢 Übersetzung – Verlässlich</h3>
+    <p>Übersetzung ist verlässlich. Sie können den Text direkt verwenden.</p>
+  </div>
+
+  <div id="overlay-gelb" class="overlay-box hidden">
+    <h3>🟡 Übersetzung – Verbesserungsbedürftig</h3>
+    <p>Übersetzung ist verständlich, aber nicht perfekt. Mit Vorsicht verwenden – bei wichtigen Inhalten professionelle Hilfe empfohlen.</p>
+  </div>
+
+  <div id="overlay-rot" class="overlay-box hidden">
+    <h3>🔴 Übersetzung – Nicht vertrauenswürdig</h3>
+    <p><strong>Qualitätseinschätzung:</strong> Niedrig</p>
+    <p><strong>Risiko:</strong> Hoch (falsche Bedeutungen, unprofessionelle Tonalität)</p>
+    <p><strong>Empfehlung für Laien:</strong> Für wichtige Inhalte bitte nicht verwenden; für grobe Orientierung nur mit Vorsicht.</p>
   </div>
 </div>
 
-<!-- Overlays triggered by badges -->
-<div id="overlay-gruen" class="overlay-box">
-  <h3>🟢 Übersetzung – Verlässlich</h3>
-  <p>Übersetzung ist verlässlich. Sie können den Text direkt verwenden.</p>
-</div>
-<div id="overlay-gelb" class="overlay-box">
-  <h3>🟡 Übersetzung – Verbesserungsbedürftig</h3>
-  <p>Übersetzung ist verständlich, aber nicht perfekt. Mit Vorsicht verwenden – bei wichtigen Inhalten professionelle Hilfe empfohlen.</p>
-</div>
-<div id="overlay-rot" class="overlay-box">
-  <h3>🔴 Übersetzung – Nicht vertrauenswürdig</h3>
-  <p><strong>Qualitätseinschätzung:</strong> Niedrig</p>
-  <p><strong>Risiko:</strong> Hoch (falsche Bedeutungen, unprofessionelle Tonalität)</p>
-  <p><strong>Empfehlung:</strong> Für wichtige Inhalte bitte nicht verwenden; für grobe Orientierung nur mit Vorsicht.</p>
-</div>
-
-<!-- Two windows side-by-side -->
-<div class="container" id="container">
-  <div class="window">
-    <h3>Ausgangstext</h3>
-    <div id="source" class="editable" contenteditable="true">
-      Segment Alpha ist hier dargestellt.<br>
-      Segment Beta folgt im Text.<br>
-      Segment Gamma schließt den Absatz ab.
-    </div>
+<div class="side-by-side">
+  <!-- Ausgangstext -->
+  <div id="source-pane" class="editable" contenteditable="true">
+    <h4>Ausgangstext</h4>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.<br><br>
+    Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi.
   </div>
 
-  <div class="window">
-    <h3>Zieltext</h3>
-    <div id="target" class="editable" contenteditable="true">
-      <span class="mark rot"
-        data-id="alpha"
-        data-level="rot"
-        data-back="Segment Alpha (Dummy zurück)"
-        data-suggestion="Segment A">Segment Alpha</span><br>
-      <span class="mark gelb"
-        data-id="beta"
-        data-level="gelb"
-        data-back="Segment Beta (Dummy zurück)"
-        data-suggestion="Segment B">Segment Beta</span><br>
-      <span class="mark gruen"
-        data-id="gamma"
-        data-level="gruen"
-        data-back="Segment Gamma (Dummy zurück)"
-        data-suggestion="Segment G">Segment Gamma</span>
-    </div>
+  <!-- Zieltext -->
+  <div id="target-pane" class="editable" contenteditable="true">
+    <h4>Zieltext 
+      <span id="overall-score" 
+      class="overall-badge rot tooltip" 
+      data-tooltip="Die Gesamteinschätzung fasst alle Segmentbewertungen zusammen.">
+  Gesamteinschätzung: 🔴 Riskant
+</span>
+    </h4>
+    Lorem ipsum <span class="mark gruen" data-key="l1">dolor sit amet</span>, 
+    <span class="mark gelb" data-key="l2">consectetur adipiscing</span> elit, 
+    <span class="mark rot" data-key="l3">sed do eiusmod</span> tempor incididunt.<br><br>
+    Ut enim ad minim veniam, <span class="mark gelb" data-key="l4">quis nostrud exercitation</span> ullamco laboris nisi ut aliquip ex ea commodo consequat.<br><br>
+    Duis aute irure <span class="mark rot" data-key="l5">dolor in reprehenderit</span> in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
   </div>
-</div>
-
-<!-- Single reusable popover -->
-<div class="popover" id="popover" role="dialog" aria-label="Segmentdetails">
-  <div class="popover__header">
-    <span class="dot" id="pop-dot" aria-hidden="true"></span>
-    <div class="popover__title" id="pop-title">DQE</div>
-    <button class="popover__close" id="pop-close" aria-label="Schließen">×</button>
-  </div>
-  <div id="pop-body">
-    <!-- Filled dynamically -->
-  </div>
-  <button class="btn" id="apply-btn">Vorschlag übernehmen</button>
 </div>
 
 <script>
-(function() {
-  const container = document.getElementById('container');
-  const pop = document.getElementById('popover');
-  const popDot = document.getElementById('pop-dot');
-  const popTitle = document.getElementById('pop-title');
-  const popBody = document.getElementById('pop-body');
-  const applyBtn = document.getElementById('apply-btn');
-  const closeBtn = document.getElementById('pop-close');
+function openOverlay(level) {
+  document.querySelectorAll('.overlay-box').forEach(o => o.classList.add('hidden'));
+  document.getElementById('overlay-'+level).classList.remove('hidden');
+}
 
-  // Badge overlays
-  document.querySelectorAll('.badge').forEach(b => {
-    b.addEventListener('click', () => {
-      const key = b.getAttribute('data-overlay');
-      document.querySelectorAll('.overlay-box').forEach(o => o.style.display = 'none');
-      const target = document.getElementById('overlay-' + key);
-      if (target) target.style.display = 'block';
-    });
+function calculateOverallScore() {
+  const marks = document.querySelectorAll('.mark');
+  let score=0,total=0;
+  marks.forEach(m=>{
+    total++;
+    if(m.classList.contains('gelb')) score+=1;
+    if(m.classList.contains('rot')) score+=3;
   });
+  const badge=document.getElementById('overall-score');
+  badge.classList.remove('gruen','gelb','rot');
+  if(score===0){ badge.textContent="Gesamteinschätzung: 🟢 Sicher"; badge.classList.add('gruen'); openOverlay('gruen'); }
+  else if(score<=Math.max(2,Math.round(0.25*total))){ badge.textContent="Gesamteinschätzung: 🟡 Unsicher"; badge.classList.add('gelb'); openOverlay('gelb'); }
+  else { badge.textContent="Gesamteinschätzung: 🔴 Riskant"; badge.classList.add('rot'); openOverlay('rot'); }
+}
 
-  // Helpers
-  function hidePopover() { pop.style.display = 'none'; }
-  function setDot(level) {
-    popDot.className = 'dot ' + (
-      level === 'gruen' ? 'dot--green' : level === 'gelb' ? 'dot--yellow' : 'dot--red'
-    );
-    popTitle.textContent = 'DQE: ' + (
-      level === 'gruen' ? 'Sicher' : level === 'gelb' ? 'Unsicher' : 'Riskant'
-    );
-  }
-  function positionPopover(seg) {
-    const isMobile = window.matchMedia('(max-width: 720px)').matches;
-    if (isMobile) { return; } // static flow on mobile
-    const rect = seg.getBoundingClientRect();
-    pop.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-    pop.style.left = (rect.left + window.scrollX) + 'px';
-  }
-
-  let currentSeg = null;
-
-  // Event delegation for segments
-container.addEventListener('click', (e) => {
-  const seg = e.target.closest('.mark');
-  if (!seg) return;
-  currentSeg = seg;
-
-  const level = seg.getAttribute('data-level');
-  const back = seg.getAttribute('data-back') || '(keine Rückübersetzung verfügbar)';
-  const suggestion = seg.getAttribute('data-suggestion') || seg.textContent.trim();
-
-  // Fill popover content
-  setDot(level);
-  let html =
-    '<p><strong>Qualität:</strong> ' + (level==='gruen'?'Hoch':level==='gelb'?'Mittel':'Niedrig') + '<br>' +
-    '<strong>Risiko:</strong> ' + (level==='gruen'?'Niedrig':level==='gelb'?'Teilweise vorhanden':'Hoch') + '</p>' +
-    '<p><strong>Rückübersetzung:</strong> „' + seg.textContent.trim() + '“ → „' + back + '“</p>';
-
-  if (level !== 'gruen') {
-    html += '<p><strong>Vorschlag:</strong> <span id="pop-suggestion">' + suggestion + '</span></p>';
-    applyBtn.style.display = 'inline-block';
-    applyBtn.dataset.suggestion = suggestion;
-  } else {
-    applyBtn.style.display = 'none'; // kein Vorschlag-Button bei Grün
-  }
-
-  popBody.innerHTML = html;
-
-  // Show and position
-  pop.style.display = 'block';
-  positionPopover(seg);
+document.addEventListener('DOMContentLoaded',()=>{
+  const badge=document.getElementById('overall-score');
+  badge.addEventListener('click',()=>{
+    badge.classList.toggle('show'); // Tooltip sichtbar/unsichtbar
+  });
 });
 
-  // Apply suggestion: replace text and upgrade to green
-  applyBtn.addEventListener('click', () => {
-    if (!currentSeg) return;
-    const newText = applyBtn.dataset.suggestion || currentSeg.textContent.trim();
-    currentSeg.textContent = newText;
+document.addEventListener('DOMContentLoaded',()=>{
+  calculateOverallScore();
+  const backTranslations={l1:"dolor sit amet",l2:"consectetur adipiscing",l3:"sed do eiusmod",l4:"quis nostrud exercitation",l5:"dolor in reprehenderit"};
+  const suggestions={l2:"stilistisch besser",l3:"korrektes Wort",l4:"präziser Ausdruck",l5:"richtige Bedeutung"};
 
-    // Upgrade segment to green (Sicher)
-    currentSeg.classList.remove('gelb', 'rot');
-    currentSeg.classList.add('gruen');
-    currentSeg.setAttribute('data-level', 'gruen');
-    currentSeg.setAttribute('data-back', newText + ' (Dummy zurück)');
-    currentSeg.setAttribute('data-suggestion', newText);
-
-    hidePopover();
+  document.querySelectorAll('.mark').forEach(mark=>{
+    mark.addEventListener('click',()=>{
+      // alte Hilfe-Box entfernen
+      document.querySelectorAll('.help-box').forEach(box=>box.remove());
+      // neue Hilfe-Box direkt nach der Markierung einfügen
+      const helpBox=document.createElement('div');
+      helpBox.className='help-box';
+      helpBox.innerHTML=`
+        <div class="help-box-header">
+          <h4>Stelle: ${mark.textContent}</h4>
+          <span class="close">×</span>
+        </div>
+        <p></p>
+        <div></div>
+      `;
+      const helpProblem=helpBox.querySelector('p');
+      const helpSuggestions=helpBox.querySelector('div:last-child');
+      if(mark.classList.contains('gruen')){
+        helpProblem.textContent="🟢 Keine Probleme.";
+        helpSuggestions.innerHTML=`<div><strong>Rückübersetzung:</strong> ${backTranslations[mark.dataset.key]}</div>`;
+      } else {
+        helpProblem.textContent= mark.classList.contains('gelb') ? "🟡 Leicht verbesserbar." : "🔴 Bedeutungsfehler.";
+        helpSuggestions.innerHTML=`
+          <div><strong>Rückübersetzung:</strong> ${backTranslations[mark.dataset.key]}</div>
+          <div><strong>Vorschlag:</strong> ${suggestions[mark.dataset.key]}</div>
+        `;
+        const btn=document.createElement('button');
+        btn.textContent="✅ Vorschlag übernehmen";
+        btn.onclick=()=>{ mark.textContent=suggestions[mark.dataset.key]; mark.classList.remove('gelb','rot'); mark.classList.add('gruen'); calculateOverallScore(); helpBox.remove(); };
+        helpSuggestions.appendChild(btn);
+      }
+      helpBox.querySelector('.close').onclick=()=>helpBox.remove();
+      mark.insertAdjacentElement('afterend',helpBox);
+    });
   });
-
-  // Close popover
-  closeBtn.addEventListener('click', hidePopover);
-
-  // Click outside to close
-  document.addEventListener('click', (e) => {
-    const inside = e.target.closest('.mark') || e.target.closest('#popover');
-    if (!inside) hidePopover();
-  });
-
-  // Reposition hides popover
-  window.addEventListener('resize', hidePopover);
-})();
+});
 </script>
 </body>
 </html>
